@@ -31,24 +31,23 @@ func (p part) ToSql() (sql string, args []interface{}, err error) {
 
 func appendToSql(parts []Sqlizer, w io.Writer, sep string, args []interface{}) ([]interface{}, error) {
 	for i, p := range parts {
-		partSql, partArgs, err := p.ToSql()
+		partSQL, partArgs, err := p.ToSql()
 		if err != nil {
 			return nil, err
-		} else if len(partSql) == 0 {
+		} else if len(partSQL) == 0 {
 			continue
 		}
 
 		if i > 0 {
-			_, err := io.WriteString(w, sep)
-			if err != nil {
+			if _, err := io.WriteString(w, sep); err != nil {
 				return nil, err
 			}
 		}
 
-		_, err = io.WriteString(w, partSql)
-		if err != nil {
+		if _, err = io.WriteString(w, partSQL); err != nil {
 			return nil, err
 		}
+
 		args = append(args, partArgs...)
 	}
 	return args, nil
