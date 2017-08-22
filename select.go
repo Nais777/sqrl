@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"fmt"
+	"errors"
 	"strconv"
 	"strings"
 )
@@ -99,7 +99,7 @@ func (b *SelectBuilder) PlaceholderFormat(f PlaceholderFormat) *SelectBuilder {
 // ToSql builds the query into a SQL string and bound args.
 func (b *SelectBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 	if len(b.columns) == 0 {
-		err = fmt.Errorf("select statements must have at least one result column")
+		err = errors.New("select statements must have at least one result column")
 		return
 	}
 

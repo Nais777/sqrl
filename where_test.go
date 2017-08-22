@@ -1,7 +1,7 @@
 package sqrl
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 
 	"bytes"
@@ -58,5 +58,5 @@ func TestWherePartMap(t *testing.T) {
 
 func TestWherePartNoArgs(t *testing.T) {
 	_, _, err := newWherePart(Eq{"test": []string{}}).ToSql()
-	assert.Equal(t, err, fmt.Errorf("equality condition must contain at least one paramater"))
+	assert.Equal(t, err, errors.New("equality condition must contain at least one paramater"))
 }

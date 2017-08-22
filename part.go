@@ -44,7 +44,7 @@ func appendToSql(parts []Sqlizer, w io.Writer, sep string, args []interface{}) (
 			}
 		}
 
-		if _, err = io.WriteString(w, partSQL); err != nil {
+		if _, err := io.WriteString(w, partSQL); err != nil {
 			return nil, err
 		}
 

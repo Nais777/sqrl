@@ -1,7 +1,7 @@
 package sqrl
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,7 +26,7 @@ func TestRowScan(t *testing.T) {
 
 func TestRowScanErr(t *testing.T) {
 	stub := &RowStub{}
-	rowErr := fmt.Errorf("scan err")
+	rowErr := errors.New("scan err")
 	row := &Row{RowScanner: stub, err: rowErr}
 	err := row.Scan()
 	assert.False(t, stub.Scanned, "row was scanned")

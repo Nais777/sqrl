@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -68,11 +69,11 @@ func (b *UpdateBuilder) PlaceholderFormat(f PlaceholderFormat) *UpdateBuilder {
 // ToSql builds the query into a SQL string and bound args.
 func (b *UpdateBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 	if len(b.table) == 0 {
-		err = fmt.Errorf("update statements must specify a table")
+		err = errors.New("update statements must specify a table")
 		return
 	}
 	if len(b.setClauses) == 0 {
-		err = fmt.Errorf("update statements must have at least one Set clause")
+		err = errors.New("update statements must have at least one Set clause")
 		return
 	}
 
@@ -119,7 +120,6 @@ func (b *UpdateBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 		sql.WriteString(strings.Join(b.orderBys, ", "))
 	}
 
-	// TODO: limit == 0 and offswt == 0 are valid. Need to go dbr way and implement offsetValid and limitValid
 	if b.limitValid {
 		sql.WriteString(" LIMIT ")
 		sql.WriteString(strconv.FormatUint(b.limit, 10))

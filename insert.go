@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -89,11 +90,11 @@ func (b *InsertBuilder) PlaceholderFormat(f PlaceholderFormat) *InsertBuilder {
 // ToSql builds the query into a SQL string and bound args.
 func (b *InsertBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 	if len(b.into) == 0 {
-		err = fmt.Errorf("insert statements must specify a table")
+		err = errors.New("insert statements must specify a table")
 		return
 	}
 	if len(b.values) == 0 {
-		err = fmt.Errorf("insert statements must have at least one set of values")
+		err = errors.New("insert statements must have at least one set of values")
 		return
 	}
 
@@ -131,15 +132,15 @@ func (b *InsertBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 		for v, val := range row {
 			switch typedVal := val.(type) {
 			case Sqlizer:
-				var valSql string
+				var valSQL string
 				var valArgs []interface{}
 
-				valSql, valArgs, err = typedVal.ToSql()
+				valSQL, valArgs, err = typedVal.ToSql()
 				if err != nil {
 					return
 				}
 
-				valueStrings[v] = valSql
+				valueStrings[v] = valSQL
 				args = append(args, valArgs...)
 			default:
 				valueStrings[v] = "?"

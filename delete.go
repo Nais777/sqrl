@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"fmt"
+	"errors"
 	"strconv"
 	"strings"
 )
@@ -64,7 +64,7 @@ func (b *DeleteBuilder) PlaceholderFormat(f PlaceholderFormat) *DeleteBuilder {
 // ToSql builds the query into a SQL string and bound args.
 func (b *DeleteBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 	if len(b.from) == 0 {
-		err = fmt.Errorf("delete statements must specify a From table")
+		err = errors.New("delete statements must specify a From table")
 		return
 	}
 
@@ -104,7 +104,6 @@ func (b *DeleteBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 		sql.WriteString(strings.Join(b.orderBys, ", "))
 	}
 
-	// TODO: limit == 0 and offswt == 0 are valid. Need to go dbr way and implement offsetValid and limitValid
 	if b.limitValid {
 		sql.WriteString(" LIMIT ")
 		sql.WriteString(strconv.FormatUint(b.limit, 10))
