@@ -13,8 +13,8 @@ type sqlizerBuffer struct {
 	err  error
 }
 
-// WriteSql converts Sqlizer to SQL strings and writes it to buffer
-func (b *sqlizerBuffer) WriteSql(item Sqlizer) {
+// WriteSQL converts Sqlizer to SQL strings and writes it to buffer
+func (b *sqlizerBuffer) WriteSQL(item Sqlizer) {
 	if b.err != nil {
 		return
 	}
@@ -65,19 +65,19 @@ func (b *CaseBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 
 	sql.WriteString("CASE ")
 	if b.whatPart != nil {
-		sql.WriteSql(b.whatPart)
+		sql.WriteSQL(b.whatPart)
 	}
 
 	for _, p := range b.whenParts {
 		sql.WriteString("WHEN ")
-		sql.WriteSql(p.when)
+		sql.WriteSQL(p.when)
 		sql.WriteString("THEN ")
-		sql.WriteSql(p.then)
+		sql.WriteSQL(p.then)
 	}
 
 	if b.elsePart != nil {
 		sql.WriteString("ELSE ")
-		sql.WriteSql(b.elsePart)
+		sql.WriteSQL(b.elsePart)
 	}
 
 	sql.WriteString("END")
@@ -93,8 +93,6 @@ func (b *CaseBuilder) what(expr interface{}) *CaseBuilder {
 
 // When adds "WHEN ... THEN ..." part to CASE construct
 func (b *CaseBuilder) When(when interface{}, then interface{}) *CaseBuilder {
-	// TODO: performance hint: replace slice of WhenPart with just slice of parts
-	// where even indices of the slice belong to "when"s and odd indices belong to "then"s
 	b.whenParts = append(b.whenParts, newWhenPart(when, then))
 	return b
 }
