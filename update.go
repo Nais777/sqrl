@@ -98,7 +98,9 @@ func (b *UpdateBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 			if err != nil {
 				return
 			}
-			args = append(args, valArgs...)
+			if len(valArgs) != 0 {
+				args = append(args, valArgs...)
+			}
 		default:
 			valSql = "?"
 			args = append(args, typedVal)
@@ -161,10 +163,14 @@ func (b *UpdateBuilder) Set(column string, value interface{}) *UpdateBuilder {
 
 // SetMap is a convenience method which calls .Set for each key/value pair in clauses.
 func (b *UpdateBuilder) SetMap(clauses map[string]interface{}) *UpdateBuilder {
+	tmp := make([]setClause, len(clauses))
+	i := 0
 	for k, v := range clauses {
-		b = b.Set(k, v)
+		tmp[i] = setClause{column: k, value: v}
+		i++
 	}
 
+	b.setClauses = append(b.setClauses, tmp...)
 	return b
 }
 
