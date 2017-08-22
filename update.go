@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 )
@@ -162,17 +161,10 @@ func (b *UpdateBuilder) Set(column string, value interface{}) *UpdateBuilder {
 
 // SetMap is a convenience method which calls .Set for each key/value pair in clauses.
 func (b *UpdateBuilder) SetMap(clauses map[string]interface{}) *UpdateBuilder {
-	keys := make([]string, len(clauses))
-	i := 0
-	for key := range clauses {
-		keys[i] = key
-		i++
+	for k, v := range clauses {
+		b = b.Set(k, v)
 	}
-	sort.Strings(keys)
-	for _, key := range keys {
-		val, _ := clauses[key]
-		b = b.Set(key, val)
-	}
+
 	return b
 }
 

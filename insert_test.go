@@ -84,3 +84,19 @@ func TestInsertBuilderSetMap(t *testing.T) {
 	expectedArgs := []interface{}{1}
 	assert.Equal(t, expectedArgs, args)
 }
+
+func BenchmarkInsertSetMap(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		Insert("table").SetMap(map[string]interface{}{
+			"test":   3,
+			"test2":  3,
+			"test3":  3,
+			"test4":  3,
+			"test5":  3,
+			"test6":  3,
+			"test7":  3,
+			"test8":  3,
+			"test9":  3,
+			"test10": 3})
+	}
+}

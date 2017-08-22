@@ -199,16 +199,16 @@ func (b *InsertBuilder) Suffix(sql string, args ...interface{}) *InsertBuilder {
 // SetMap set columns and values for insert builder from a map of column name and value
 // note that it will reset all previous columns and values was set if any
 func (b *InsertBuilder) SetMap(clauses map[string]interface{}) *InsertBuilder {
-	// TODO: replace resetting previous values with extending existing ones?
-	cols := make([]string, 0, len(clauses))
-	vals := make([]interface{}, 0, len(clauses))
+	b.columns = make([]string, len(clauses))
+	vals := make([]interface{}, len(clauses))
 
+	i := 0
 	for col, val := range clauses {
-		cols = append(cols, col)
-		vals = append(vals, val)
+		b.columns[i] = col
+		vals[i] = val
+		i++
 	}
 
-	b.columns = cols
 	b.values = [][]interface{}{vals}
 
 	return b

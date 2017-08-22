@@ -1,7 +1,6 @@
 package sqrl
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -27,15 +26,6 @@ func TestEscape(t *testing.T) {
 	sql := "SELECT uuid, \"data\" #> '{tags}' AS tags FROM nodes WHERE  \"data\" -> 'tags' ??| array['?'] AND enabled = ?"
 	s, _ := Dollar.ReplacePlaceholders(sql)
 	assert.Equal(t, "SELECT uuid, \"data\" #> '{tags}' AS tags FROM nodes WHERE  \"data\" -> 'tags' ?| array['$1'] AND enabled = $2", s)
-}
-
-func BenchmarkPlaceholdersArray(b *testing.B) {
-	var count = b.N
-	placeholders := make([]string, count)
-	for i := 0; i < count; i++ {
-		placeholders[i] = "?"
-	}
-	var _ = strings.Join(placeholders, ",")
 }
 
 func BenchmarkPlaceholdersStrings(b *testing.B) {

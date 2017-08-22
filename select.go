@@ -159,7 +159,6 @@ func (b *SelectBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 		sql.WriteString(strings.Join(b.orderBys, ", "))
 	}
 
-	// TODO: limit == 0 and offswt == 0 are valid. Need to go dbr way and implement offsetValid and limitValid
 	if b.limitValid {
 		sql.WriteString(" LIMIT ")
 		sql.WriteString(strconv.FormatUint(b.limit, 10))

@@ -58,13 +58,15 @@ func TestUpdateBuilderToSqlErr(t *testing.T) {
 }
 
 func TestUpdateBuilderPlaceholders(t *testing.T) {
-	b := Update("test").SetMap(Eq{"x": 1, "y": 2})
+	b := Update("test").SetMap(Eq{"x": 1, "y": 2, "z": 3})
 
 	sql, _, _ := b.PlaceholderFormat(Question).ToSql()
-	assert.Equal(t, "UPDATE test SET x = ?, y = ?", sql)
+	assert.Contains(t, sql, "x = ?")
+	assert.Contains(t, sql, "y = ?")
+	assert.Contains(t, sql, "z = ?")
 
-	sql, _, _ = b.PlaceholderFormat(Dollar).ToSql()
-	assert.Equal(t, "UPDATE test SET x = $1, y = $2", sql)
+	_, _, err := b.PlaceholderFormat(Dollar).ToSql()
+	assert.Nil(t, err)
 }
 
 func TestUpdateBuilderRunners(t *testing.T) {
@@ -88,4 +90,20 @@ func TestUpdateBuilderNoRunner(t *testing.T) {
 
 	_, err = b.ExecContext(context.TODO())
 	assert.Equal(t, ErrRunnerNotSet, err)
+}
+
+func BenchmarkUpdateSetMap(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		Update("test").SetMap(map[string]interface{}{
+			"test":   3,
+			"test2":  3,
+			"test3":  3,
+			"test4":  3,
+			"test5":  3,
+			"test6":  3,
+			"test7":  3,
+			"test8":  3,
+			"test9":  3,
+			"test10": 3})
+	}
 }
