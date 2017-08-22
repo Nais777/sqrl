@@ -68,7 +68,10 @@ func (es exprs) AppendToSql(w io.Writer, sep string, args []interface{}) ([]inte
 		if err != nil {
 			return nil, err
 		}
-		args = append(args, e.args...)
+
+		if len(e.args) != 0 {
+			args = append(args, e.args...)
+		}
 	}
 	return args, nil
 }

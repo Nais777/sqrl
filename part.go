@@ -48,7 +48,9 @@ func appendToSql(parts []Sqlizer, w io.Writer, sep string, args []interface{}) (
 			return nil, err
 		}
 
-		args = append(args, partArgs...)
+		if len(partArgs) != 0 {
+			args = append(args, partArgs...)
+		}
 	}
 	return args, nil
 }
