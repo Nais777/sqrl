@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 )
@@ -88,9 +87,12 @@ func (b *UpdateBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 	sql.WriteString(b.table)
 
 	sql.WriteString(" SET ")
-	setSqls := make([]string, len(b.setClauses))
 	i := 0
 	for column, value := range b.setClauses {
+		if i > 0 {
+			sql.WriteString(", ")
+		}
+
 		var valSQL string
 		switch typedVal := value.(type) {
 		case Sqlizer:
@@ -106,10 +108,12 @@ func (b *UpdateBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 			valSQL = "?"
 			args = append(args, typedVal)
 		}
-		setSqls[i] = fmt.Sprintf("%s = %s", column, valSQL)
+		sql.WriteString(column)
+		sql.WriteString(" = ")
+		sql.WriteString(valSQL)
+
 		i++
 	}
-	sql.WriteString(strings.Join(setSqls, ", "))
 
 	if len(b.whereParts) > 0 {
 		sql.WriteString(" WHERE ")
