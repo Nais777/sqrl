@@ -176,3 +176,29 @@ func TestExprSqlizer(t *testing.T) {
 		assert.Equal(t, []interface{}{42, 42}, args)
 	}
 }
+
+func BenchmarkEqToSql(b *testing.B) {
+	b.Run("Nil", func(b *testing.B) {
+		eq := Eq{"test": nil}
+
+		for n := 0; n < b.N; n++ {
+			eq.ToSql()
+		}
+	})
+
+	b.Run("EQ", func(b *testing.B) {
+		eq := Eq{"test": 5}
+
+		for n := 0; n < b.N; n++ {
+			eq.ToSql()
+		}
+	})
+
+	b.Run("IN", func(b *testing.B) {
+		eq := Eq{"test": []int{1, 2, 3, 4, 5}}
+
+		for n := 0; n < b.N; n++ {
+			eq.ToSql()
+		}
+	})
+}

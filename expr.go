@@ -105,10 +105,9 @@ type Eq map[string]interface{}
 
 func (eq Eq) toSql(useNotOpr bool) (sql string, args []interface{}, err error) {
 	var (
-		exprs    []string
-		equalOpr string = "="
-		inOpr    string = "IN"
-		nullOpr  string = "IS"
+		equalOpr = "="
+		inOpr    = "IN"
+		nullOpr  = "IS"
 	)
 
 	if useNotOpr {
@@ -117,8 +116,12 @@ func (eq Eq) toSql(useNotOpr bool) (sql string, args []interface{}, err error) {
 		nullOpr = "IS NOT"
 	}
 
+	buf := &bytes.Buffer{}
+	first := true
 	for key, val := range eq {
-		expr := ""
+		if !first {
+			buf.WriteString(" AND ")
+		}
 
 		switch v := val.(type) {
 		case driver.Valuer:
@@ -128,7 +131,10 @@ func (eq Eq) toSql(useNotOpr bool) (sql string, args []interface{}, err error) {
 		}
 
 		if val == nil {
-			expr = fmt.Sprintf("%s %s NULL", key, nullOpr)
+			buf.WriteString(key)
+			buf.WriteByte(' ')
+			buf.WriteString(nullOpr)
+			buf.WriteString(" NULL")
 		} else {
 			valVal := reflect.ValueOf(val)
 			if valVal.Kind() == reflect.Array || valVal.Kind() == reflect.Slice {
@@ -136,18 +142,32 @@ func (eq Eq) toSql(useNotOpr bool) (sql string, args []interface{}, err error) {
 					err = errors.New("equality condition must contain at least one paramater")
 					return
 				}
+
 				for i := 0; i < valVal.Len(); i++ {
 					args = append(args, valVal.Index(i).Interface())
 				}
-				expr = fmt.Sprintf("%s %s (%s)", key, inOpr, Placeholders(valVal.Len()))
+
+				buf.WriteString(key)
+				buf.WriteByte(' ')
+				buf.WriteString(inOpr)
+				buf.WriteString(" (")
+				buf.WriteString(Placeholders(valVal.Len()))
+				buf.WriteString(")")
 			} else {
-				expr = fmt.Sprintf("%s %s ?", key, equalOpr)
+				buf.WriteString(key)
+				buf.WriteByte(' ')
+				buf.WriteString(equalOpr)
+				buf.WriteString(" ?")
+
 				args = append(args, val)
 			}
 		}
-		exprs = append(exprs, expr)
+
+		if first {
+			first = false
+		}
 	}
-	sql = strings.Join(exprs, " AND ")
+	sql = buf.String()
 	return
 }
 
