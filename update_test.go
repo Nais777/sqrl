@@ -93,8 +93,27 @@ func TestUpdateBuilderNoRunner(t *testing.T) {
 }
 
 func BenchmarkUpdateSetMap(b *testing.B) {
+	m := map[string]interface{}{
+		"test":   3,
+		"test2":  3,
+		"test3":  3,
+		"test4":  3,
+		"test5":  3,
+		"test6":  3,
+		"test7":  3,
+		"test8":  3,
+		"test9":  3,
+		"test10": 3}
+
 	for n := 0; n < b.N; n++ {
-		Update("test").SetMap(map[string]interface{}{
+		Update("test").SetMap(m)
+	}
+}
+
+func BenchmarkUpdateToSQL(b *testing.B) {
+	qb := Update("test").
+		Prefix("AWESOME PREFIX").
+		SetMap(map[string]interface{}{
 			"test":   3,
 			"test2":  3,
 			"test3":  3,
@@ -104,6 +123,13 @@ func BenchmarkUpdateSetMap(b *testing.B) {
 			"test7":  3,
 			"test8":  3,
 			"test9":  3,
-			"test10": 3})
+			"test10": 3}).
+		Where("test = ?", 1).
+		Limit(10).
+		Offset(10).
+		Suffix("AWESOME SUFFIX")
+
+	for n := 0; n < b.N; n++ {
+		qb.ToSql()
 	}
 }

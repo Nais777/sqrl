@@ -23,7 +23,7 @@ type UpdateBuilder struct {
 
 	prefixes   exprs
 	table      string
-	setClauses []setClause
+	setClauses map[string]interface{}
 	whereParts []Sqlizer
 	orderBys   []string
 
@@ -89,12 +89,13 @@ func (b *UpdateBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 
 	sql.WriteString(" SET ")
 	setSqls := make([]string, len(b.setClauses))
-	for i, setClause := range b.setClauses {
-		var valSql string
-		switch typedVal := setClause.value.(type) {
+	i := 0
+	for column, value := range b.setClauses {
+		var valSQL string
+		switch typedVal := value.(type) {
 		case Sqlizer:
 			var valArgs []interface{}
-			valSql, valArgs, err = typedVal.ToSql()
+			valSQL, valArgs, err = typedVal.ToSql()
 			if err != nil {
 				return
 			}
@@ -102,10 +103,11 @@ func (b *UpdateBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 				args = append(args, valArgs...)
 			}
 		default:
-			valSql = "?"
+			valSQL = "?"
 			args = append(args, typedVal)
 		}
-		setSqls[i] = fmt.Sprintf("%s = %s", setClause.column, valSql)
+		setSqls[i] = fmt.Sprintf("%s = %s", column, valSQL)
+		i++
 	}
 	sql.WriteString(strings.Join(setSqls, ", "))
 
@@ -157,20 +159,25 @@ func (b *UpdateBuilder) Table(table string) *UpdateBuilder {
 
 // Set adds SET clauses to the query.
 func (b *UpdateBuilder) Set(column string, value interface{}) *UpdateBuilder {
-	b.setClauses = append(b.setClauses, setClause{column: column, value: value})
+	if b.setClauses == nil {
+		b.setClauses = map[string]interface{}{column: value}
+	} else {
+		b.setClauses[column] = value
+	}
+
 	return b
 }
 
 // SetMap is a convenience method which calls .Set for each key/value pair in clauses.
 func (b *UpdateBuilder) SetMap(clauses map[string]interface{}) *UpdateBuilder {
-	tmp := make([]setClause, len(clauses))
-	i := 0
-	for k, v := range clauses {
-		tmp[i] = setClause{column: k, value: v}
-		i++
+	if b.setClauses == nil {
+		b.setClauses = clauses
+	} else {
+		for k, v := range clauses {
+			b.setClauses[k] = v
+		}
 	}
 
-	b.setClauses = append(b.setClauses, tmp...)
 	return b
 }
 
