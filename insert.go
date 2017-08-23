@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"strings"
 )
 
@@ -124,12 +123,18 @@ func (b *InsertBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 
 	sql.WriteString("VALUES ")
 
-	valuesStrings := make([]string, len(b.values))
 	for r, row := range b.values {
+		if r > 0 {
+			sql.WriteString(",")
+		}
 
-		valueStrings := make([]string, len(row))
+		sql.WriteString("(")
 
 		for v, val := range row {
+			if v > 0 {
+				sql.WriteString(",")
+			}
+
 			switch typedVal := val.(type) {
 			case Sqlizer:
 				var valSQL string
@@ -140,17 +145,16 @@ func (b *InsertBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 					return
 				}
 
-				valueStrings[v] = valSQL
+				sql.WriteString(valSQL)
 				args = append(args, valArgs...)
 			default:
-				valueStrings[v] = "?"
+				sql.WriteString("?")
 				args = append(args, val)
 			}
 		}
 
-		valuesStrings[r] = fmt.Sprintf("(%s)", strings.Join(valueStrings, ","))
+		sql.WriteString(")")
 	}
-	sql.WriteString(strings.Join(valuesStrings, ","))
 
 	if len(b.suffixes) > 0 {
 		sql.WriteString(" ")
