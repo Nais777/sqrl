@@ -192,21 +192,22 @@ func (neq NotEq) ToSql() (sql string, args []interface{}, err error) {
 type Lt map[string]interface{}
 
 func (lt Lt) toSql(opposite, orEq bool) (sql string, args []interface{}, err error) {
-	var (
-		exprs []string
-		opr   string = "<"
-	)
+	opr := "<"
 
 	if opposite {
 		opr = ">"
 	}
 
 	if orEq {
-		opr = fmt.Sprintf("%s%s", opr, "=")
+		opr += "="
 	}
 
+	buf := &bytes.Buffer{}
+	first := true
 	for key, val := range lt {
-		expr := ""
+		if !first {
+			buf.WriteString(" AND ")
+		}
 
 		switch v := val.(type) {
 		case driver.Valuer:
@@ -218,19 +219,27 @@ func (lt Lt) toSql(opposite, orEq bool) (sql string, args []interface{}, err err
 		if val == nil {
 			err = errors.New("cannot use null with less than or greater than operators")
 			return
-		} else {
-			valVal := reflect.ValueOf(val)
-			if valVal.Kind() == reflect.Array || valVal.Kind() == reflect.Slice {
-				err = errors.New("cannot use array or slice with less than or greater than operators")
-				return
-			} else {
-				expr = fmt.Sprintf("%s %s ?", key, opr)
-				args = append(args, val)
-			}
 		}
-		exprs = append(exprs, expr)
+
+		valVal := reflect.ValueOf(val)
+		if valVal.Kind() == reflect.Array || valVal.Kind() == reflect.Slice {
+			err = errors.New("cannot use array or slice with less than or greater than operators")
+			return
+		}
+
+		buf.WriteString(key)
+		buf.WriteByte(' ')
+		buf.WriteString(opr)
+		buf.WriteString(" ?")
+
+		args = append(args, val)
+
+		if first {
+			first = false
+		}
 	}
-	sql = strings.Join(exprs, " AND ")
+
+	sql = buf.String()
 	return
 }
 

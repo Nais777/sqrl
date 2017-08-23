@@ -202,3 +202,11 @@ func BenchmarkEqToSql(b *testing.B) {
 		}
 	})
 }
+
+func BenchmarkLtToSql(b *testing.B) {
+	lt := Lt{"test": 5}
+
+	for n := 0; n < b.N; n++ {
+		lt.ToSql()
+	}
+}
