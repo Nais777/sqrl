@@ -6,6 +6,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func BenchmarkCaseToSQL(b *testing.B) {
+	caseStmt := Case("number").
+		When("1", "one").
+		When("2", "two").
+		Else(Expr("?", "big number"))
+
+	for n := 0; n < b.N; n++ {
+		caseStmt.ToSql()
+	}
+}
+
 func TestCaseWithVal(t *testing.T) {
 	caseStmt := Case("number").
 		When("1", "one").
