@@ -28,11 +28,14 @@ func (p part) toSQL(b sqlBuffer) (written bool, args []interface{}, err error) {
 }
 
 func appendToSQL(parts []sqlWriter, b sqlBuffer, sep string, args []interface{}) ([]interface{}, error) {
+	sepWritten := false
 	for i, p := range parts {
-		if i > 0 {
+		if i > 0 && !sepWritten {
 			if _, err := b.WriteString(sep); err != nil {
 				return nil, err
 			}
+
+			sepWritten = true
 		}
 
 		written, partArgs, err := p.toSQL(b)
@@ -41,6 +44,8 @@ func appendToSQL(parts []sqlWriter, b sqlBuffer, sep string, args []interface{})
 		} else if !written {
 			continue
 		}
+
+		sepWritten = false
 
 		if len(partArgs) != 0 {
 			args = append(args, partArgs...)
