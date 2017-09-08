@@ -15,11 +15,11 @@ import (
 type DeleteBuilder struct {
 	StatementBuilderType
 
-	prefixes   exprs
+	prefixes   []expr
 	what       []string
 	from       string
 	joins      []string
-	whereParts []Sqlizer
+	whereParts []sqlWriter
 	orderBys   []string
 
 	limit       uint64
@@ -27,7 +27,7 @@ type DeleteBuilder struct {
 	offset      uint64
 	offsetValid bool
 
-	suffixes exprs
+	suffixes []expr
 }
 
 // NewDeleteBuilder creates new instance of DeleteBuilder
@@ -61,8 +61,8 @@ func (b *DeleteBuilder) PlaceholderFormat(f PlaceholderFormat) *DeleteBuilder {
 	return b
 }
 
-// ToSql builds the query into a SQL string and bound args.
-func (b *DeleteBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
+// ToSQL builds the query into a SQL string and bound args.
+func (b *DeleteBuilder) ToSQL() (sqlStr string, args []interface{}, err error) {
 	if len(b.from) == 0 {
 		err = errors.New("delete statements must specify a From table")
 		return
@@ -71,7 +71,7 @@ func (b *DeleteBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 	sql := &bytes.Buffer{}
 
 	if len(b.prefixes) > 0 {
-		args, _ = b.prefixes.AppendToSql(sql, " ", args)
+		args, _ = appendExpressionsToSQL(sql, b.prefixes, " ", args)
 		sql.WriteString(" ")
 	}
 
@@ -93,7 +93,7 @@ func (b *DeleteBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 
 	if len(b.whereParts) > 0 {
 		sql.WriteString(" WHERE ")
-		args, err = appendToSql(b.whereParts, sql, " AND ", args)
+		args, err = appendToSQL(b.whereParts, sql, " AND ", args)
 		if err != nil {
 			return
 		}
@@ -116,7 +116,7 @@ func (b *DeleteBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 
 	if len(b.suffixes) > 0 {
 		sql.WriteString(" ")
-		args, _ = b.suffixes.AppendToSql(sql, " ", args)
+		args, _ = appendExpressionsToSQL(sql, b.suffixes, " ", args)
 	}
 
 	sqlStr, err = b.placeholderFormat.ReplacePlaceholders(sql.String())

@@ -12,12 +12,12 @@ import (
 type InsertBuilder struct {
 	StatementBuilderType
 
-	prefixes exprs
+	prefixes []expr
 	options  []string
 	into     string
 	columns  []string
 	values   [][]interface{}
-	suffixes exprs
+	suffixes []expr
 }
 
 // NewInsertBuilder creates new instance of InsertBuilder
@@ -87,7 +87,7 @@ func (b *InsertBuilder) PlaceholderFormat(f PlaceholderFormat) *InsertBuilder {
 }
 
 // ToSql builds the query into a SQL string and bound args.
-func (b *InsertBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
+func (b *InsertBuilder) ToSQL() (sqlStr string, args []interface{}, err error) {
 	if len(b.into) == 0 {
 		err = errors.New("insert statements must specify a table")
 		return
@@ -100,7 +100,7 @@ func (b *InsertBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 	sql := &bytes.Buffer{}
 
 	if len(b.prefixes) > 0 {
-		args, _ = b.prefixes.AppendToSql(sql, " ", args)
+		args, _ = appendExpressionsToSQL(sql, b.prefixes, " ", args)
 		sql.WriteString(" ")
 	}
 
@@ -136,17 +136,17 @@ func (b *InsertBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 			}
 
 			switch typedVal := val.(type) {
-			case Sqlizer:
-				var valSQL string
+			case sqlWriter:
 				var valArgs []interface{}
 
-				valSQL, valArgs, err = typedVal.ToSql()
+				_, valArgs, err = typedVal.toSQL(sql)
 				if err != nil {
 					return
 				}
 
-				sql.WriteString(valSQL)
-				args = append(args, valArgs...)
+				if len(valArgs) > 0 {
+					args = append(args, valArgs...)
+				}
 			default:
 				sql.WriteString("?")
 				args = append(args, val)
@@ -158,7 +158,7 @@ func (b *InsertBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 
 	if len(b.suffixes) > 0 {
 		sql.WriteString(" ")
-		args, _ = b.suffixes.AppendToSql(sql, " ", args)
+		args, _ = appendExpressionsToSQL(sql, b.suffixes, " ", args)
 	}
 
 	sqlStr, err = b.placeholderFormat.ReplacePlaceholders(sql.String())

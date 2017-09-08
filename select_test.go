@@ -34,10 +34,10 @@ func TestSelectBuilderToSql(t *testing.T) {
 		Offset(13).
 		Suffix("FETCH FIRST ? ROWS ONLY", 14)
 
-	sql, args, err := b.ToSql()
+	sql, args, err := b.ToSQL()
 	assert.NoError(t, err)
 
-	expectedSql :=
+	expectedSQL :=
 		"WITH prefix AS ? " +
 			"SELECT DISTINCT a, b, c, IF(d IN (?,?,?), 1, 0) as stat_column, a > ?, " +
 			"(b IN (?,?,?)) AS b_alias, " +
@@ -47,7 +47,7 @@ func TestSelectBuilderToSql(t *testing.T) {
 			"WHERE f = ? AND g = ? AND h = ? AND i IN (?,?,?) AND (j = ? OR (k = ? AND true)) " +
 			"GROUP BY l HAVING m = n ORDER BY o ASC, p DESC LIMIT 12 OFFSET 13 " +
 			"FETCH FIRST ? ROWS ONLY"
-	assert.Equal(t, expectedSql, sql)
+	assert.Equal(t, expectedSQL, sql)
 
 	expectedArgs := []interface{}{0, 1, 2, 3, 100, 101, 102, 103, 4, 5, 6, 7, 8, 9, 10, 11, 14}
 	assert.Equal(t, expectedArgs, args)
@@ -69,7 +69,7 @@ func BenchmarkSelectBuilderToSqlWithArguements(b *testing.B) {
 		Suffix("FETCH FIRST ? ROWS ONLY", 14)
 
 	for i := 0; i < b.N; i++ {
-		qb.ToSql()
+		qb.ToSQL()
 	}
 }
 
@@ -88,7 +88,7 @@ func BenchmarkSelectBuilderToSql(b *testing.B) {
 		Suffix("FETCH FIRST 10 ROWS ONLY")
 
 	for i := 0; i < b.N; i++ {
-		qb.ToSql()
+		qb.ToSQL()
 	}
 }
 
@@ -98,25 +98,25 @@ func TestSelectBuilderZeroOffsetLimit(t *testing.T) {
 		Limit(0).
 		Offset(0)
 
-	sql, _, err := qb.ToSql()
+	sql, _, err := qb.ToSQL()
 	assert.NoError(t, err)
 
-	expectedSql := "SELECT a FROM b LIMIT 0 OFFSET 0"
-	assert.Equal(t, expectedSql, sql)
+	expectedSQL := "SELECT a FROM b LIMIT 0 OFFSET 0"
+	assert.Equal(t, expectedSQL, sql)
 }
 
 func TestSelectBuilderToSqlErr(t *testing.T) {
-	_, _, err := Select().From("x").ToSql()
+	_, _, err := Select().From("x").ToSQL()
 	assert.Error(t, err)
 }
 
 func TestSelectBuilderPlaceholders(t *testing.T) {
 	b := Select("test").Where("x = ? AND y = ?")
 
-	sql, _, _ := b.PlaceholderFormat(Question).ToSql()
+	sql, _, _ := b.PlaceholderFormat(Question).ToSQL()
 	assert.Equal(t, "SELECT test WHERE x = ? AND y = ?", sql)
 
-	sql, _, _ = b.PlaceholderFormat(Dollar).ToSql()
+	sql, _, _ = b.PlaceholderFormat(Dollar).ToSQL()
 	assert.Equal(t, "SELECT test WHERE x = $1 AND y = $2", sql)
 }
 

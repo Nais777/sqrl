@@ -26,13 +26,13 @@ var (
 
 type questionFormat struct{}
 
-func (_ questionFormat) ReplacePlaceholders(sql string) (string, error) {
+func (q questionFormat) ReplacePlaceholders(sql string) (string, error) {
 	return sql, nil
 }
 
 type dollarFormat struct{}
 
-func (_ dollarFormat) ReplacePlaceholders(sql string) (string, error) {
+func (q dollarFormat) ReplacePlaceholders(sql string) (string, error) {
 	return replacePlaceholders(sql, func(buf *bytes.Buffer, i int) error {
 		fmt.Fprintf(buf, "$%d", i)
 		return nil

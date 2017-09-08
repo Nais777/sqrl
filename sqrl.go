@@ -1,6 +1,3 @@
-// package sqrl provides a fluent SQL generator.
-//
-// See https://github.com/elgris/sqrl for examples.
 package sqrl
 
 import (
@@ -9,13 +6,14 @@ import (
 	"errors"
 )
 
-// Sqlizer is the interface that wraps the ToSql method.
-//
-// ToSql returns a SQL representation of the Sqlizer, along with a slice of args
-// as passed to e.g. database/sql.Exec. It can also return an error.
-type Sqlizer interface {
-	ToSql() (string, []interface{}, error)
-}
+// ErrRunnerNotSet is returned by methods that need a Runner if it isn't set.
+var ErrRunnerNotSet = errors.New("cannot run; no Runner set (RunWith)")
+
+// ErrRunnerNotQueryRunner is returned by QueryRow if the RunWith value doesn't implement QueryRower.
+var ErrRunnerNotQueryRunner = errors.New("cannot QueryRow; Runner is not a QueryRower")
+
+// ErrRunnerNotQueryRunnerContext is returned by QueryRowContext if the RunWith value doesn't implement QueryRowerContext.
+var ErrRunnerNotQueryRunnerContext = errors.New("cannot QueryRow; Runner is not a QueryRowerContext")
 
 // Execer is the interface that wraps the Exec method.
 //
@@ -67,28 +65,23 @@ type BaseRunner interface {
 	QueryerContext
 }
 
-// Runner groups the Execer, Queryer, and QueryRower interfaces.
-type Runner interface {
-	Execer
-	ExecerContext
-	Queryer
-	QueryerContext
-	QueryRower
-	QueryRowerContext
+type sqlBuffer interface {
+	WriteString(s string) (int, error)
+	WriteByte(c byte) error
+	WriteRune(r rune) (n int, err error)
 }
 
-// ErrRunnerNotSet is returned by methods that need a Runner if it isn't set.
-var ErrRunnerNotSet = errors.New("cannot run; no Runner set (RunWith)")
+type sqlWriter interface {
+	toSQL(b sqlBuffer) (written bool, args []interface{}, err error)
+}
 
-// ErrRunnerNotQueryRunner is returned by QueryRow if the RunWith value doesn't implement QueryRower.
-var ErrRunnerNotQueryRunner = errors.New("cannot QueryRow; Runner is not a QueryRower")
-
-// ErrRunnerNotQueryRunnerContext is returned by QueryRowContext if the RunWith value doesn't implement QueryRowerContext.
-var ErrRunnerNotQueryRunnerContext = errors.New("cannot QueryRow; Runner is not a QueryRowerContext")
+type sqlBuilder interface {
+	ToSQL() (string, []interface{}, error)
+}
 
 // ExecWith Execs the SQL returned by s with db.
-func ExecWith(db Execer, s Sqlizer) (res sql.Result, err error) {
-	query, args, err := s.ToSql()
+func ExecWith(db Execer, s sqlBuilder) (res sql.Result, err error) {
+	query, args, err := s.ToSQL()
 	if err != nil {
 		return
 	}
@@ -96,8 +89,8 @@ func ExecWith(db Execer, s Sqlizer) (res sql.Result, err error) {
 }
 
 // ExecWithContext Execs the SQL returned by s with db.
-func ExecWithContext(ctx context.Context, db ExecerContext, s Sqlizer) (res sql.Result, err error) {
-	query, args, err := s.ToSql()
+func ExecWithContext(ctx context.Context, db ExecerContext, s sqlBuilder) (res sql.Result, err error) {
+	query, args, err := s.ToSQL()
 	if err != nil {
 		return
 	}
@@ -105,8 +98,8 @@ func ExecWithContext(ctx context.Context, db ExecerContext, s Sqlizer) (res sql.
 }
 
 // QueryWith Querys the SQL returned by s with db.
-func QueryWith(db Queryer, s Sqlizer) (rows *sql.Rows, err error) {
-	query, args, err := s.ToSql()
+func QueryWith(db Queryer, s sqlBuilder) (rows *sql.Rows, err error) {
+	query, args, err := s.ToSQL()
 	if err != nil {
 		return
 	}
@@ -114,8 +107,8 @@ func QueryWith(db Queryer, s Sqlizer) (rows *sql.Rows, err error) {
 }
 
 // QueryWithContext Querys the SQL returned by s with db.
-func QueryWithContext(ctx context.Context, db QueryerContext, s Sqlizer) (rows *sql.Rows, err error) {
-	query, args, err := s.ToSql()
+func QueryWithContext(ctx context.Context, db QueryerContext, s sqlBuilder) (rows *sql.Rows, err error) {
+	query, args, err := s.ToSQL()
 	if err != nil {
 		return
 	}
@@ -123,13 +116,13 @@ func QueryWithContext(ctx context.Context, db QueryerContext, s Sqlizer) (rows *
 }
 
 // QueryRowWith QueryRows the SQL returned by s with db.
-func QueryRowWith(db QueryRower, s Sqlizer) RowScanner {
-	query, args, err := s.ToSql()
+func QueryRowWith(db QueryRower, s sqlBuilder) RowScanner {
+	query, args, err := s.ToSQL()
 	return &Row{RowScanner: db.QueryRow(query, args...), err: err}
 }
 
 // QueryRowWithContext QueryRows the SQL returned by s with db.
-func QueryRowWithContext(ctx context.Context, db QueryRowerContext, s Sqlizer) RowScanner {
-	query, args, err := s.ToSql()
+func QueryRowWithContext(ctx context.Context, db QueryRowerContext, s sqlBuilder) RowScanner {
+	query, args, err := s.ToSQL()
 	return &Row{RowScanner: db.QueryRowContext(ctx, query, args...), err: err}
 }

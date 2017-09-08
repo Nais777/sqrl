@@ -3,9 +3,6 @@ package sqrl
 import (
 	"context"
 	"database/sql"
-	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 type DBStub struct {
@@ -70,39 +67,4 @@ func (s *DBStub) QueryRowContext(ctx context.Context, query string, args ...inte
 	s.LastQueryRowSql = query
 	s.LastQueryRowArgs = args
 	return &Row{RowScanner: &RowStub{}}
-}
-
-var sqlizer = Select("test")
-var sqlStr = "SELECT test"
-
-func TestExecWith(t *testing.T) {
-	db := &DBStub{}
-	ExecWith(db, sqlizer)
-	assert.Equal(t, sqlStr, db.LastExecSql)
-}
-
-func TestQueryWith(t *testing.T) {
-	db := &DBStub{}
-	QueryWith(db, sqlizer)
-	assert.Equal(t, sqlStr, db.LastQuerySql)
-}
-
-func TestQueryRowWith(t *testing.T) {
-	db := &DBStub{}
-	QueryRowWith(db, sqlizer)
-	assert.Equal(t, sqlStr, db.LastQueryRowSql)
-}
-
-func TestWithToSqlErr(t *testing.T) {
-	db := &DBStub{}
-	sqlizer := Select()
-
-	_, err := ExecWith(db, sqlizer)
-	assert.Error(t, err)
-
-	_, err = QueryWith(db, sqlizer)
-	assert.Error(t, err)
-
-	err = QueryRowWith(db, sqlizer).Scan()
-	assert.Error(t, err)
 }

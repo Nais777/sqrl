@@ -4,7 +4,7 @@ import "testing"
 import "bytes"
 
 func BenchmarkPartAppendToSQL(b *testing.B) {
-	parts := []Sqlizer{
+	parts := []sqlWriter{
 		newPart("test"),
 		newPart("test"),
 		newPart("test"),
@@ -18,12 +18,12 @@ func BenchmarkPartAppendToSQL(b *testing.B) {
 
 	for n := 0; n < b.N; n++ {
 		sql := &bytes.Buffer{}
-		appendToSql(parts, sql, ", ", make([]interface{}, 0))
+		appendToSQL(parts, sql, ", ", make([]interface{}, 0))
 	}
 }
 
 func BenchmarkPartWithArguementAppendToSQL(b *testing.B) {
-	parts := []Sqlizer{
+	parts := []sqlWriter{
 		newPart("test", 1),
 		newPart("test", 1),
 		newPart("test", 1),
@@ -37,6 +37,6 @@ func BenchmarkPartWithArguementAppendToSQL(b *testing.B) {
 
 	for n := 0; n < b.N; n++ {
 		sql := &bytes.Buffer{}
-		appendToSql(parts, sql, ", ", make([]interface{}, 0))
+		appendToSQL(parts, sql, ", ", make([]interface{}, 0))
 	}
 }

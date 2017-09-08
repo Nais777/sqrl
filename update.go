@@ -20,10 +20,10 @@ type setClause struct {
 type UpdateBuilder struct {
 	StatementBuilderType
 
-	prefixes   exprs
+	prefixes   []expr
 	table      string
 	setClauses map[string]interface{}
-	whereParts []Sqlizer
+	whereParts []sqlWriter
 	orderBys   []string
 
 	limit       uint64
@@ -31,7 +31,7 @@ type UpdateBuilder struct {
 	offset      uint64
 	offsetValid bool
 
-	suffixes exprs
+	suffixes []expr
 }
 
 // NewUpdateBuilder creates new instance of UpdateBuilder
@@ -66,7 +66,7 @@ func (b *UpdateBuilder) PlaceholderFormat(f PlaceholderFormat) *UpdateBuilder {
 }
 
 // ToSql builds the query into a SQL string and bound args.
-func (b *UpdateBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
+func (b *UpdateBuilder) ToSQL() (sqlStr string, args []interface{}, err error) {
 	if len(b.table) == 0 {
 		err = errors.New("update statements must specify a table")
 		return
@@ -79,7 +79,7 @@ func (b *UpdateBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 	sql := &bytes.Buffer{}
 
 	if len(b.prefixes) > 0 {
-		args, _ = b.prefixes.AppendToSql(sql, " ", args)
+		args, _ = appendExpressionsToSQL(sql, b.prefixes, " ", args)
 		sql.WriteString(" ")
 	}
 
@@ -93,11 +93,12 @@ func (b *UpdateBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 			sql.WriteString(", ")
 		}
 
-		var valSQL string
+		sql.WriteString(column + " = ")
+
 		switch typedVal := value.(type) {
-		case Sqlizer:
+		case sqlWriter:
 			var valArgs []interface{}
-			valSQL, valArgs, err = typedVal.ToSql()
+			_, valArgs, err = typedVal.toSQL(sql)
 			if err != nil {
 				return
 			}
@@ -105,19 +106,16 @@ func (b *UpdateBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 				args = append(args, valArgs...)
 			}
 		default:
-			valSQL = "?"
+			sql.WriteString("?")
 			args = append(args, typedVal)
 		}
-		sql.WriteString(column)
-		sql.WriteString(" = ")
-		sql.WriteString(valSQL)
 
 		i++
 	}
 
 	if len(b.whereParts) > 0 {
 		sql.WriteString(" WHERE ")
-		args, err = appendToSql(b.whereParts, sql, " AND ", args)
+		args, err = appendToSQL(b.whereParts, sql, " AND ", args)
 		if err != nil {
 			return
 		}
@@ -140,7 +138,7 @@ func (b *UpdateBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 
 	if len(b.suffixes) > 0 {
 		sql.WriteString(" ")
-		args, _ = b.suffixes.AppendToSql(sql, " ", args)
+		args, _ = appendExpressionsToSQL(sql, b.suffixes, " ", args)
 	}
 
 	sqlStr, err = b.placeholderFormat.ReplacePlaceholders(sql.String())

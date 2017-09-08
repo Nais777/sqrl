@@ -13,14 +13,14 @@ import (
 type SelectBuilder struct {
 	StatementBuilderType
 
-	prefixes    exprs
+	prefixes    []expr
 	distinct    bool
-	columns     []Sqlizer
+	columns     []sqlWriter
 	from        string
 	joins       []string
-	whereParts  []Sqlizer
+	whereParts  []sqlWriter
 	groupBys    []string
-	havingParts []Sqlizer
+	havingParts []sqlWriter
 	orderBys    []string
 
 	limit       uint64
@@ -28,7 +28,7 @@ type SelectBuilder struct {
 	offset      uint64
 	offsetValid bool
 
-	suffixes exprs
+	suffixes []expr
 }
 
 // NewSelectBuilder creates new instance of SelectBuilder
@@ -96,18 +96,33 @@ func (b *SelectBuilder) PlaceholderFormat(f PlaceholderFormat) *SelectBuilder {
 	return b
 }
 
-// ToSql builds the query into a SQL string and bound args.
-func (b *SelectBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
+// ToSQL builds the query into a SQL string and bound args.
+func (b *SelectBuilder) ToSQL() (sqlStr string, args []interface{}, err error) {
+	sql := bytes.NewBuffer(make([]byte, 0, 200))
+	_, args, err = b.toSQL(sql)
+	if err != nil {
+		return
+	}
+
+	sqlStr, err = b.placeholderFormat.ReplacePlaceholders(sql.String())
+	return
+}
+
+//toSQL implements sqlWriter
+//the SelectBuilder must implement this interface since it can be used within other queries
+func (b *SelectBuilder) toSQL(sql sqlBuffer) (written bool, args []interface{}, err error) {
 	if len(b.columns) == 0 {
 		err = errors.New("select statements must have at least one result column")
 		return
 	}
 
-	sql := &bytes.Buffer{}
-
 	if len(b.prefixes) > 0 {
-		args, _ = b.prefixes.AppendToSql(sql, " ", args)
-		sql.WriteString(" ")
+		args, err = appendExpressionsToSQL(sql, b.prefixes, " ", args)
+		if err != nil {
+			return
+		}
+
+		sql.WriteByte(' ')
 	}
 
 	sql.WriteString("SELECT ")
@@ -117,64 +132,62 @@ func (b *SelectBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
 	}
 
 	if len(b.columns) > 0 {
-		args, err = appendToSql(b.columns, sql, ", ", args)
+		args, err = appendToSQL(b.columns, sql, ", ", args)
 		if err != nil {
 			return
 		}
 	}
 
 	if len(b.from) > 0 {
-		sql.WriteString(" FROM ")
-		sql.WriteString(b.from)
+		sql.WriteString(" FROM " + b.from)
 	}
 
 	if len(b.joins) > 0 {
-		sql.WriteString(" ")
-		sql.WriteString(strings.Join(b.joins, " "))
+		sql.WriteString(" " + strings.Join(b.joins, " "))
 	}
 
 	if len(b.whereParts) > 0 {
 		sql.WriteString(" WHERE ")
-		args, err = appendToSql(b.whereParts, sql, " AND ", args)
+		args, err = appendToSQL(b.whereParts, sql, " AND ", args)
 		if err != nil {
 			return
 		}
 	}
 
 	if len(b.groupBys) > 0 {
-		sql.WriteString(" GROUP BY ")
-		sql.WriteString(strings.Join(b.groupBys, ", "))
+		sql.WriteString(" GROUP BY " + strings.Join(b.groupBys, ", "))
 	}
 
 	if len(b.havingParts) > 0 {
 		sql.WriteString(" HAVING ")
-		args, err = appendToSql(b.havingParts, sql, " AND ", args)
+		args, err = appendToSQL(b.havingParts, sql, " AND ", args)
 		if err != nil {
 			return
 		}
 	}
 
 	if len(b.orderBys) > 0 {
-		sql.WriteString(" ORDER BY ")
-		sql.WriteString(strings.Join(b.orderBys, ", "))
+		sql.WriteString(" ORDER BY " + strings.Join(b.orderBys, ", "))
 	}
 
 	if b.limitValid {
-		sql.WriteString(" LIMIT ")
-		sql.WriteString(strconv.FormatUint(b.limit, 10))
+		sql.WriteString(" LIMIT " + strconv.FormatUint(b.limit, 10))
 	}
 
 	if b.offsetValid {
-		sql.WriteString(" OFFSET ")
-		sql.WriteString(strconv.FormatUint(b.offset, 10))
+		sql.WriteString(" OFFSET " + strconv.FormatUint(b.offset, 10))
 	}
 
 	if len(b.suffixes) > 0 {
-		sql.WriteString(" ")
-		args, _ = b.suffixes.AppendToSql(sql, " ", args)
+		sql.WriteByte(' ')
+
+		args, err = appendExpressionsToSQL(sql, b.suffixes, " ", args)
+		if err != nil {
+			return
+		}
 	}
 
-	sqlStr, err = b.placeholderFormat.ReplacePlaceholders(sql.String())
+	written = true
 	return
 
 }

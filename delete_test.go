@@ -17,7 +17,7 @@ func TestDeleteBuilderToSql(t *testing.T) {
 		Offset(3).
 		Suffix("RETURNING ?", 4)
 
-	sql, args, err := b.ToSql()
+	sql, args, err := b.ToSQL()
 	assert.NoError(t, err)
 
 	expectedSql :=
@@ -35,7 +35,7 @@ func TestDeleteFromAndWhatDiffer(t *testing.T) {
 		From("a").
 		Where("b = ?", 1)
 
-	sql, args, err := b.ToSql()
+	sql, args, err := b.ToSQL()
 	assert.NoError(t, err)
 
 	expectedSql := "DELETE b FROM a WHERE b = ?"
@@ -49,7 +49,7 @@ func TestDeleteFromAndWhatSame(t *testing.T) {
 		From("a").
 		Where("b = ?", 1)
 
-	sql, args, err := b.ToSql()
+	sql, args, err := b.ToSQL()
 	assert.NoError(t, err)
 
 	expectedSql := "DELETE FROM a WHERE b = ?"
@@ -61,7 +61,7 @@ func TestDeleteWithoutFrom(t *testing.T) {
 	b := Delete("a").
 		Where("b = ?", 1)
 
-	sql, args, err := b.ToSql()
+	sql, args, err := b.ToSQL()
 	assert.NoError(t, err)
 
 	expectedSql := "DELETE FROM a WHERE b = ?"
@@ -77,7 +77,7 @@ func TestDeleteSqlMultipleTables(t *testing.T) {
 		Join("a3").
 		Where("b = ?", 1)
 
-	sql, args, err := b.ToSql()
+	sql, args, err := b.ToSQL()
 	assert.NoError(t, err)
 
 	expectedSql :=
@@ -99,7 +99,7 @@ func TestDeleteBuilderZeroOffsetLimit(t *testing.T) {
 		Limit(0).
 		Offset(0)
 
-	sql, _, err := qb.ToSql()
+	sql, _, err := qb.ToSQL()
 	assert.NoError(t, err)
 
 	expectedSql := "DELETE FROM b LIMIT 0 OFFSET 0"
@@ -107,17 +107,17 @@ func TestDeleteBuilderZeroOffsetLimit(t *testing.T) {
 }
 
 func TestDeleteBuilderToSqlErr(t *testing.T) {
-	_, _, err := Delete("").ToSql()
+	_, _, err := Delete("").ToSQL()
 	assert.Error(t, err)
 }
 
 func TestDeleteBuilderPlaceholders(t *testing.T) {
 	b := Delete("test").Where("x = ? AND y = ?", 1, 2)
 
-	sql, _, _ := b.PlaceholderFormat(Question).ToSql()
+	sql, _, _ := b.PlaceholderFormat(Question).ToSQL()
 	assert.Equal(t, "DELETE FROM test WHERE x = ? AND y = ?", sql)
 
-	sql, _, _ = b.PlaceholderFormat(Dollar).ToSql()
+	sql, _, _ = b.PlaceholderFormat(Dollar).ToSQL()
 	assert.Equal(t, "DELETE FROM test WHERE x = $1 AND y = $2", sql)
 }
 
@@ -151,7 +151,7 @@ func TestIssue11(t *testing.T) {
 		Where("b.d = ?", 1).
 		Limit(2)
 
-	sql, args, err := b.ToSql()
+	sql, args, err := b.ToSQL()
 	assert.NoError(t, err)
 
 	expectedSql := "DELETE a FROM A a " +

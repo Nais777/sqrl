@@ -1,45 +1,42 @@
 package sqrl
 
-import (
-	"bytes"
-	"errors"
-)
+import "errors"
 
 // sqlizerBuffer is a helper that allows to write many Sqlizers one by one
 // without constant checks for errors that may come from Sqlizer
 type sqlizerBuffer struct {
-	bytes.Buffer
-	args []interface{}
-	err  error
+	b       sqlBuffer
+	written bool
+	args    []interface{}
+	err     error
 }
 
 // WriteSQL converts Sqlizer to SQL strings and writes it to buffer
-func (b *sqlizerBuffer) WriteSQL(item Sqlizer) {
+func (b *sqlizerBuffer) WriteSQL(item sqlWriter) {
 	if b.err != nil {
 		return
 	}
 
-	var str string
 	var args []interface{}
-	str, args, b.err = item.ToSql()
+	written, args, err := item.toSQL(b.b)
 
-	if b.err != nil {
+	if err != nil {
+		b.err = err
 		return
 	}
 
-	b.WriteString(str)
-	b.WriteByte(' ')
-	b.args = append(b.args, args...)
-}
+	if written {
+		b.written = written
+	}
 
-func (b *sqlizerBuffer) ToSql() (string, []interface{}, error) {
-	return b.String(), b.args, b.err
+	b.b.WriteByte(' ')
+	b.args = append(b.args, args...)
 }
 
 // whenPart is a helper structure to describe SQLs "WHEN ... THEN ..." expression
 type whenPart struct {
-	when Sqlizer
-	then Sqlizer
+	when sqlWriter
+	then sqlWriter
 }
 
 func newWhenPart(when interface{}, then interface{}) whenPart {
@@ -48,41 +45,39 @@ func newWhenPart(when interface{}, then interface{}) whenPart {
 
 // CaseBuilder builds SQL CASE construct which could be used as parts of queries.
 type CaseBuilder struct {
-	whatPart  Sqlizer
+	whatPart  sqlWriter
 	whenParts []whenPart
-	elsePart  Sqlizer
+	elsePart  sqlWriter
 }
 
-// ToSql implements Sqlizer
-func (b *CaseBuilder) ToSql() (sqlStr string, args []interface{}, err error) {
+// toSql implements sqlWriter
+func (b *CaseBuilder) toSQL(s sqlBuffer) (bool, []interface{}, error) {
 	if len(b.whenParts) == 0 {
-		err = errors.New("case expression must contain at lease one WHEN clause")
-
-		return
+		return false, nil, errors.New("case expression must contain at lease one WHEN clause")
 	}
 
-	sql := sqlizerBuffer{}
+	sql := sqlizerBuffer{b: s}
 
-	sql.WriteString("CASE ")
+	s.WriteString("CASE ")
 	if b.whatPart != nil {
 		sql.WriteSQL(b.whatPart)
 	}
 
 	for _, p := range b.whenParts {
-		sql.WriteString("WHEN ")
+		s.WriteString("WHEN ")
 		sql.WriteSQL(p.when)
-		sql.WriteString("THEN ")
+		s.WriteString("THEN ")
 		sql.WriteSQL(p.then)
 	}
 
 	if b.elsePart != nil {
-		sql.WriteString("ELSE ")
+		s.WriteString("ELSE ")
 		sql.WriteSQL(b.elsePart)
 	}
 
-	sql.WriteString("END")
+	s.WriteString("END")
 
-	return sql.ToSql()
+	return sql.written, sql.args, sql.err
 }
 
 // what sets optional value for CASE construct "CASE [value] ..."

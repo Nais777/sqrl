@@ -19,7 +19,7 @@ func TestUpdateBuilderToSql(t *testing.T) {
 		Offset(5).
 		Suffix("RETURNING ?", 6)
 
-	sql, args, err := b.ToSql()
+	sql, args, err := b.ToSQL()
 	assert.NoError(t, err)
 
 	expectedSql :=
@@ -39,7 +39,7 @@ func TestUpdateBuilderZeroOffsetLimit(t *testing.T) {
 		Limit(0).
 		Offset(0)
 
-	sql, args, err := qb.ToSql()
+	sql, args, err := qb.ToSQL()
 	assert.NoError(t, err)
 
 	expectedSql := "UPDATE a SET b = ? LIMIT 0 OFFSET 0"
@@ -50,22 +50,22 @@ func TestUpdateBuilderZeroOffsetLimit(t *testing.T) {
 }
 
 func TestUpdateBuilderToSqlErr(t *testing.T) {
-	_, _, err := Update("").Set("x", 1).ToSql()
+	_, _, err := Update("").Set("x", 1).ToSQL()
 	assert.Error(t, err)
 
-	_, _, err = Update("x").ToSql()
+	_, _, err = Update("x").ToSQL()
 	assert.Error(t, err)
 }
 
 func TestUpdateBuilderPlaceholders(t *testing.T) {
 	b := Update("test").SetMap(Eq{"x": 1, "y": 2, "z": 3})
 
-	sql, _, _ := b.PlaceholderFormat(Question).ToSql()
+	sql, _, _ := b.PlaceholderFormat(Question).ToSQL()
 	assert.Contains(t, sql, "x = ?")
 	assert.Contains(t, sql, "y = ?")
 	assert.Contains(t, sql, "z = ?")
 
-	_, _, err := b.PlaceholderFormat(Dollar).ToSql()
+	_, _, err := b.PlaceholderFormat(Dollar).ToSQL()
 	assert.Nil(t, err)
 }
 
@@ -130,6 +130,6 @@ func BenchmarkUpdateToSQL(b *testing.B) {
 		Suffix("AWESOME SUFFIX")
 
 	for n := 0; n < b.N; n++ {
-		qb.ToSql()
+		qb.ToSQL()
 	}
 }
