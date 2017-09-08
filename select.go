@@ -99,7 +99,7 @@ func (b *SelectBuilder) PlaceholderFormat(f PlaceholderFormat) *SelectBuilder {
 // ToSQL builds the query into a SQL string and bound args.
 func (b *SelectBuilder) ToSQL() (sqlStr string, args []interface{}, err error) {
 	sql := bytes.NewBuffer(make([]byte, 0, 200))
-	_, args, err = b.toSQL(sql)
+	args, err = b.toSQL(sql)
 	if err != nil {
 		return
 	}
@@ -110,7 +110,7 @@ func (b *SelectBuilder) ToSQL() (sqlStr string, args []interface{}, err error) {
 
 //toSQL implements sqlWriter
 //the SelectBuilder must implement this interface since it can be used within other queries
-func (b *SelectBuilder) toSQL(sql sqlBuffer) (written bool, args []interface{}, err error) {
+func (b *SelectBuilder) toSQL(sql *bytes.Buffer) (args []interface{}, err error) {
 	if len(b.columns) == 0 {
 		err = errors.New("select statements must have at least one result column")
 		return
@@ -187,7 +187,6 @@ func (b *SelectBuilder) toSQL(sql sqlBuffer) (written bool, args []interface{}, 
 		}
 	}
 
-	written = true
 	return
 
 }
@@ -208,6 +207,10 @@ func (b *SelectBuilder) Distinct() *SelectBuilder {
 // Columns adds result columns to the query.
 func (b *SelectBuilder) Columns(columns ...string) *SelectBuilder {
 	for _, str := range columns {
+		if str == "" {
+			continue
+		}
+
 		b.columns = append(b.columns, newPart(str))
 	}
 
@@ -219,7 +222,9 @@ func (b *SelectBuilder) Columns(columns ...string) *SelectBuilder {
 // the columns string, for example:
 //   Column("IF(col IN ("+Placeholders(3)+"), 1, 0) as col", 1, 2, 3)
 func (b *SelectBuilder) Column(column interface{}, args ...interface{}) *SelectBuilder {
-	b.columns = append(b.columns, newPart(column, args...))
+	if column != nil {
+		b.columns = append(b.columns, newPart(column, args...))
+	}
 
 	return b
 }

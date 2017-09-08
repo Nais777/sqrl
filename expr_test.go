@@ -12,9 +12,8 @@ func TestEqToSql(t *testing.T) {
 	e := Eq{"id": 1}
 
 	b := &bytes.Buffer{}
-	written, args, err := e.toSQL(b)
+	args, err := e.toSQL(b)
 	assert.NoError(t, err)
-	assert.True(t, written)
 
 	expectedSQL := "id = ?"
 	assert.Equal(t, expectedSQL, b.String())
@@ -27,9 +26,8 @@ func TestEqInToSql(t *testing.T) {
 	e := Eq{"id": []int{1, 2, 3}}
 
 	b := &bytes.Buffer{}
-	written, args, err := e.toSQL(b)
+	args, err := e.toSQL(b)
 	assert.NoError(t, err)
-	assert.True(t, written)
 
 	expectedSQL := "id IN (?,?,?)"
 	assert.Equal(t, expectedSQL, b.String())
@@ -42,9 +40,8 @@ func TestNeqToSql(t *testing.T) {
 	e := Neq{"id": 1}
 
 	b := &bytes.Buffer{}
-	written, args, err := e.toSQL(b)
+	args, err := e.toSQL(b)
 	assert.NoError(t, err)
-	assert.True(t, written)
 
 	expectedSQL := "id <> ?"
 	assert.Equal(t, expectedSQL, b.String())
@@ -57,9 +54,8 @@ func TestNeqInToSql(t *testing.T) {
 	e := Neq{"id": []int{1, 2, 3}}
 
 	b := &bytes.Buffer{}
-	written, args, err := e.toSQL(b)
+	args, err := e.toSQL(b)
 	assert.NoError(t, err)
-	assert.True(t, written)
 
 	expectedSQL := "id NOT IN (?,?,?)"
 	assert.Equal(t, expectedSQL, b.String())
@@ -73,9 +69,8 @@ func TestExprNilToSql(t *testing.T) {
 	e = Neq{"name": nil}
 
 	b := &bytes.Buffer{}
-	written, args, err := e.toSQL(b)
+	args, err := e.toSQL(b)
 	assert.NoError(t, err)
-	assert.True(t, written)
 	assert.Empty(t, args)
 
 	expectedSQL := "name IS NOT NULL"
@@ -84,9 +79,8 @@ func TestExprNilToSql(t *testing.T) {
 	e = Eq{"name": nil}
 
 	b = &bytes.Buffer{}
-	written, args, err = e.toSQL(b)
+	args, err = e.toSQL(b)
 	assert.NoError(t, err)
-	assert.True(t, written)
 	assert.Empty(t, args)
 
 	expectedSQL = "name IS NULL"
@@ -97,9 +91,8 @@ func TestLtToSql(t *testing.T) {
 	e := Lt{"id": 1}
 
 	b := &bytes.Buffer{}
-	written, args, err := e.toSQL(b)
+	args, err := e.toSQL(b)
 	assert.NoError(t, err)
-	assert.True(t, written)
 
 	expectedSQL := "id < ?"
 	assert.Equal(t, expectedSQL, b.String())
@@ -112,9 +105,8 @@ func TestLteToSql(t *testing.T) {
 	e := Lte{"id": 1}
 
 	b := &bytes.Buffer{}
-	written, args, err := e.toSQL(b)
+	args, err := e.toSQL(b)
 	assert.NoError(t, err)
-	assert.True(t, written)
 
 	expectedSQL := "id <= ?"
 	assert.Equal(t, expectedSQL, b.String())
@@ -127,9 +119,8 @@ func TestGtToSql(t *testing.T) {
 	e := Gt{"id": 1}
 
 	b := &bytes.Buffer{}
-	written, args, err := e.toSQL(b)
+	args, err := e.toSQL(b)
 	assert.NoError(t, err)
-	assert.True(t, written)
 
 	expectedSQL := "id > ?"
 	assert.Equal(t, expectedSQL, b.String())
@@ -142,9 +133,8 @@ func TestGteToSql(t *testing.T) {
 	e := Gte{"id": 1}
 
 	b := &bytes.Buffer{}
-	written, args, err := e.toSQL(b)
+	args, err := e.toSQL(b)
 	assert.NoError(t, err)
-	assert.True(t, written)
 
 	expectedSQL := "id >= ?"
 	assert.Equal(t, expectedSQL, b.String())
@@ -160,9 +150,8 @@ func TestNullTypeString(t *testing.T) {
 	e = Eq{"name": name}
 
 	b := &bytes.Buffer{}
-	written, args, err := e.toSQL(b)
+	args, err := e.toSQL(b)
 	assert.NoError(t, err)
-	assert.True(t, written)
 	assert.Empty(t, args)
 
 	assert.Equal(t, "name IS NULL", b.String())
@@ -171,9 +160,8 @@ func TestNullTypeString(t *testing.T) {
 	e = Eq{"name": name}
 
 	b = &bytes.Buffer{}
-	written, args, err = e.toSQL(b)
+	args, err = e.toSQL(b)
 	assert.NoError(t, err)
-	assert.True(t, written)
 
 	assert.Equal(t, []interface{}{"Name"}, args)
 	assert.Equal(t, "name = ?", b.String())
@@ -185,9 +173,8 @@ func TestNullTypeInt64(t *testing.T) {
 	e := Eq{"user_id": userID}
 
 	b := &bytes.Buffer{}
-	written, args, err := e.toSQL(b)
+	args, err := e.toSQL(b)
 	assert.NoError(t, err)
-	assert.True(t, written)
 	assert.Empty(t, args)
 
 	assert.Equal(t, "user_id IS NULL", b.String())
@@ -196,27 +183,25 @@ func TestNullTypeInt64(t *testing.T) {
 	e = Eq{"user_id": userID}
 
 	b = &bytes.Buffer{}
-	written, args, err = e.toSQL(b)
+	args, err = e.toSQL(b)
 	assert.NoError(t, err)
-	assert.True(t, written)
 	assert.Equal(t, []interface{}{int64(10)}, args)
 	assert.Equal(t, "user_id = ?", b.String())
 }
 
 type dummySqlizer int
 
-func (d dummySqlizer) toSQL(b sqlBuffer) (bool, []interface{}, error) {
+func (d dummySqlizer) toSQL(b *bytes.Buffer) ([]interface{}, error) {
 	b.WriteString("DUMMY(?, ?)")
-	return true, []interface{}{int(d), int(d)}, nil
+	return []interface{}{int(d), int(d)}, nil
 }
 
 func TestExprSqlizer(t *testing.T) {
 	e := Expr("EXISTS(?)", dummySqlizer(42))
 
 	b := &bytes.Buffer{}
-	written, args, err := e.toSQL(b)
+	args, err := e.toSQL(b)
 	assert.NoError(t, err)
-	assert.True(t, written)
 
 	assert.Equal(t, "EXISTS(DUMMY(?, ?))", b.String())
 	assert.Equal(t, []interface{}{42, 42}, args)

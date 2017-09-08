@@ -25,10 +25,9 @@ func TestCaseWithVal(t *testing.T) {
 		Else(Expr("?", "big number"))
 
 	b := &bytes.Buffer{}
-	written, args, err := caseStmt.toSQL(b)
+	args, err := caseStmt.toSQL(b)
 
 	assert.NoError(t, err)
-	assert.True(t, written)
 
 	expectedSQL := "CASE number " +
 		"WHEN 1 THEN one " +
@@ -46,10 +45,9 @@ func TestCaseWithComplexVal(t *testing.T) {
 		When("true", "'T'")
 
 	b := &bytes.Buffer{}
-	written, args, err := caseStmt.toSQL(b)
+	args, err := caseStmt.toSQL(b)
 
 	assert.NoError(t, err)
-	assert.True(t, written)
 
 	expectedSQL := "CASE ? > ? " +
 		"WHEN true THEN 'T' " +
@@ -66,10 +64,9 @@ func TestCaseWithNoVal(t *testing.T) {
 		When(Expr("x > ?", 1), Expr("CONCAT('x is greater than ', ?)", 2))
 
 	b := &bytes.Buffer{}
-	written, args, err := caseStmt.toSQL(b)
+	args, err := caseStmt.toSQL(b)
 
 	assert.NoError(t, err)
-	assert.True(t, written)
 
 	expectedSQL := "CASE " +
 		"WHEN x = ? THEN x is zero " +
@@ -88,10 +85,9 @@ func TestCaseWithExpr(t *testing.T) {
 		Else("42")
 
 	b := &bytes.Buffer{}
-	written, args, err := caseStmt.toSQL(b)
+	args, err := caseStmt.toSQL(b)
 
 	assert.NoError(t, err)
-	assert.True(t, written)
 
 	expectedSQL := "CASE x = ? " +
 		"WHEN true THEN ? " +
@@ -108,7 +104,7 @@ func TestCaseWithNoWhenClause(t *testing.T) {
 	caseStmt := Case("something").
 		Else("42")
 
-	_, _, err := caseStmt.toSQL(&bytes.Buffer{})
+	_, err := caseStmt.toSQL(&bytes.Buffer{})
 
 	assert.Error(t, err)
 

@@ -12,7 +12,6 @@ import (
 func TestWherePartsAppendToSql(t *testing.T) {
 	parts := []sqlWriter{
 		newWherePart("x = ?", 1),
-		newWherePart(nil),
 		newWherePart(Eq{"y": 2}),
 	}
 	sql := &bytes.Buffer{}
@@ -27,24 +26,15 @@ func TestWherePartsAppendToSqlErr(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestWherePartNil(t *testing.T) {
-	b := &bytes.Buffer{}
-	_, _, err := newWherePart(nil).toSQL(b)
-
-	assert.NoError(t, err)
-	assert.Equal(t, "", b.String())
-}
-
 func TestWherePartErr(t *testing.T) {
-	_, _, err := newWherePart(1).toSQL(&bytes.Buffer{})
+	_, err := newWherePart(1).toSQL(&bytes.Buffer{})
 	assert.Error(t, err)
 }
 
 func TestWherePartString(t *testing.T) {
 	b := &bytes.Buffer{}
-	written, args, err := newWherePart("x = ?", 1).toSQL(b)
+	args, err := newWherePart("x = ?", 1).toSQL(b)
 	assert.NoError(t, err)
-	assert.True(t, written)
 	assert.Equal(t, "x = ?", b.String())
 	assert.Equal(t, []interface{}{1}, args)
 }
@@ -52,8 +42,7 @@ func TestWherePartString(t *testing.T) {
 func TestWherePartMap(t *testing.T) {
 	test := func(pred interface{}) {
 		b := &bytes.Buffer{}
-		written, _, err := newWherePart(pred).toSQL(b)
-		assert.True(t, written)
+		_, err := newWherePart(pred).toSQL(b)
 		assert.NoError(t, err)
 
 		sql := b.String()
@@ -68,6 +57,6 @@ func TestWherePartMap(t *testing.T) {
 }
 
 func TestWherePartNoArgs(t *testing.T) {
-	_, _, err := newWherePart(Eq{"test": []string{}}).toSQL(&bytes.Buffer{})
+	_, err := newWherePart(Eq{"test": []string{}}).toSQL(&bytes.Buffer{})
 	assert.Equal(t, err, errors.New("equality condition must contain at least one paramater"))
 }

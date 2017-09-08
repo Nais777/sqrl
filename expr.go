@@ -20,10 +20,10 @@ func Expr(sql string, args ...interface{}) expr {
 	return expr{sql: sql, args: args}
 }
 
-func (e expr) toSQL(b sqlBuffer) (bool, []interface{}, error) {
+func (e expr) toSQL(b *bytes.Buffer) ([]interface{}, error) {
 	if !hasSQLWriter(e.args) {
 		b.WriteString(e.sql)
-		return true, e.args, nil
+		return e.args, nil
 	}
 
 	args := make([]interface{}, 0, len(e.args))
@@ -34,7 +34,7 @@ func (e expr) toSQL(b sqlBuffer) (bool, []interface{}, error) {
 		}
 		switch arg := e.args[i-1].(type) {
 		case sqlWriter:
-			_, vs, err := arg.toSQL(buf)
+			vs, err := arg.toSQL(buf)
 			if err != nil {
 				return err
 			}
@@ -47,15 +47,15 @@ func (e expr) toSQL(b sqlBuffer) (bool, []interface{}, error) {
 	})
 
 	if err != nil {
-		return false, nil, err
+		return nil, err
 	}
 
 	b.WriteString(sql)
 
-	return true, args, nil
+	return args, nil
 }
 
-func appendExpressionsToSQL(b sqlBuffer, exprs []expr, sep string, args []interface{}) ([]interface{}, error) {
+func appendExpressionsToSQL(b *bytes.Buffer, exprs []expr, sep string, args []interface{}) ([]interface{}, error) {
 	for i, e := range exprs {
 		if i > 0 {
 			_, err := b.WriteString(sep)
@@ -80,7 +80,7 @@ func appendExpressionsToSQL(b sqlBuffer, exprs []expr, sep string, args []interf
 //     .Where(Eq{"id": 1})
 type Eq map[string]interface{}
 
-func (eq Eq) toSQL(b sqlBuffer) (written bool, args []interface{}, err error) {
+func (eq Eq) toSQL(b *bytes.Buffer) (args []interface{}, err error) {
 	return equalityToSQL(eq, b, false)
 }
 
@@ -89,7 +89,7 @@ func (eq Eq) toSQL(b sqlBuffer) (written bool, args []interface{}, err error) {
 //     .Where(NotEq{"id": 1}) == "id <> 1"
 type Neq map[string]interface{}
 
-func (neq Neq) toSQL(b sqlBuffer) (written bool, args []interface{}, err error) {
+func (neq Neq) toSQL(b *bytes.Buffer) (args []interface{}, err error) {
 	return equalityToSQL(neq, b, true)
 }
 
@@ -98,7 +98,7 @@ func (neq Neq) toSQL(b sqlBuffer) (written bool, args []interface{}, err error) 
 //     .Where(Lt{"id": 1})
 type Lt map[string]interface{}
 
-func (lt Lt) toSQL(b sqlBuffer) (written bool, args []interface{}, err error) {
+func (lt Lt) toSQL(b *bytes.Buffer) (args []interface{}, err error) {
 	return comparisonToSQL(lt, b, false, false)
 }
 
@@ -107,7 +107,7 @@ func (lt Lt) toSQL(b sqlBuffer) (written bool, args []interface{}, err error) {
 //     .Where(LtOrEq{"id": 1}) == "id <= 1"
 type Lte map[string]interface{}
 
-func (lte Lte) toSQL(b sqlBuffer) (written bool, args []interface{}, err error) {
+func (lte Lte) toSQL(b *bytes.Buffer) (args []interface{}, err error) {
 	return comparisonToSQL(lte, b, false, true)
 }
 
@@ -116,7 +116,7 @@ func (lte Lte) toSQL(b sqlBuffer) (written bool, args []interface{}, err error) 
 //     .Where(Gt{"id": 1}) == "id > 1"
 type Gt map[string]interface{}
 
-func (gt Gt) toSQL(b sqlBuffer) (written bool, args []interface{}, err error) {
+func (gt Gt) toSQL(b *bytes.Buffer) (args []interface{}, err error) {
 	return comparisonToSQL(gt, b, true, false)
 }
 
@@ -125,7 +125,7 @@ func (gt Gt) toSQL(b sqlBuffer) (written bool, args []interface{}, err error) {
 //     .Where(GtOrEq{"id": 1}) == "id >= 1"
 type Gte map[string]interface{}
 
-func (gte Gte) toSQL(b sqlBuffer) (written bool, args []interface{}, err error) {
+func (gte Gte) toSQL(b *bytes.Buffer) (args []interface{}, err error) {
 	return comparisonToSQL(gte, b, true, true)
 }
 
@@ -143,9 +143,9 @@ func Alias(expr sqlWriter, alias string) aliasExpr {
 	return aliasExpr{expr, alias}
 }
 
-func (e aliasExpr) toSQL(b sqlBuffer) (written bool, args []interface{}, err error) {
+func (e aliasExpr) toSQL(b *bytes.Buffer) (args []interface{}, err error) {
 	b.WriteByte('(')
-	written, args, err = e.expr.toSQL(b)
+	args, err = e.expr.toSQL(b)
 	if err != nil {
 		return
 	}
@@ -157,30 +157,24 @@ func (e aliasExpr) toSQL(b sqlBuffer) (written bool, args []interface{}, err err
 
 type conj []sqlWriter
 
-func (c conj) join(b sqlBuffer, sep string) (written bool, args []interface{}, err error) {
+func (c conj) join(b *bytes.Buffer, sep string) (args []interface{}, err error) {
 	b.WriteByte('(')
 
 	var partArgs []interface{}
-	sepWritten := false
 	for i, s := range c {
-		if i > 0 && !sepWritten {
+		if i > 0 {
 			b.WriteString(sep)
-			sepWritten = true
 		}
 
-		written, partArgs, err = s.toSQL(b)
+		partArgs, err = s.toSQL(b)
 		if err != nil {
 			return
 		}
 
-		if written {
-			args = append(args, partArgs...)
-			sepWritten = false
-		}
+		args = append(args, partArgs...)
 	}
 	b.WriteByte(')')
 
-	written = true
 	return
 }
 
@@ -190,7 +184,7 @@ func (c conj) join(b sqlBuffer, sep string) (written bool, args []interface{}, e
 type And conj
 
 // ToSql builds the query into a SQL string and bound args.
-func (a And) toSQL(b sqlBuffer) (bool, []interface{}, error) {
+func (a And) toSQL(b *bytes.Buffer) ([]interface{}, error) {
 	return conj(a).join(b, " AND ")
 }
 
@@ -200,11 +194,11 @@ func (a And) toSQL(b sqlBuffer) (bool, []interface{}, error) {
 type Or conj
 
 // ToSql builds the query into a SQL string and bound args.
-func (o Or) toSQL(b sqlBuffer) (bool, []interface{}, error) {
+func (o Or) toSQL(b *bytes.Buffer) ([]interface{}, error) {
 	return conj(o).join(b, " OR ")
 }
 
-func equalityToSQL(m map[string]interface{}, b sqlBuffer, useNotOpr bool) (written bool, args []interface{}, err error) {
+func equalityToSQL(m map[string]interface{}, b *bytes.Buffer, useNotOpr bool) (args []interface{}, err error) {
 	var (
 		equalOpr = "="
 		inOpr    = "IN"
@@ -268,12 +262,10 @@ func equalityToSQL(m map[string]interface{}, b sqlBuffer, useNotOpr bool) (writt
 		}
 	}
 
-	written = true
-
 	return
 }
 
-func comparisonToSQL(m map[string]interface{}, b sqlBuffer, opposite, orEq bool) (written bool, args []interface{}, err error) {
+func comparisonToSQL(m map[string]interface{}, b *bytes.Buffer, opposite, orEq bool) (args []interface{}, err error) {
 	opr := "<"
 
 	if opposite {
@@ -319,8 +311,6 @@ func comparisonToSQL(m map[string]interface{}, b sqlBuffer, opposite, orEq bool)
 			first = false
 		}
 	}
-
-	written = true
 
 	return
 }

@@ -139,7 +139,7 @@ func (b *InsertBuilder) ToSQL() (sqlStr string, args []interface{}, err error) {
 			case sqlWriter:
 				var valArgs []interface{}
 
-				_, valArgs, err = typedVal.toSQL(sql)
+				valArgs, err = typedVal.toSQL(sql)
 				if err != nil {
 					return
 				}
