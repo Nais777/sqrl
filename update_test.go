@@ -73,13 +73,13 @@ func TestUpdateBuilderRunners(t *testing.T) {
 	db := &DBStub{}
 	b := Update("test").Set("x", 1).RunWith(db)
 
-	expectedSql := "UPDATE test SET x = ?"
+	expectedSQL := "UPDATE test SET x = ?"
 
 	b.Exec()
-	assert.Equal(t, expectedSql, db.LastExecSql)
+	assert.Equal(t, expectedSQL, db.LastExecSql)
 
 	b.ExecContext(context.TODO())
-	assert.Equal(t, expectedSql, db.LastExecSql)
+	assert.Equal(t, expectedSQL, db.LastExecSql)
 }
 
 func TestUpdateBuilderNoRunner(t *testing.T) {

@@ -3,11 +3,10 @@
 **Non thread safe** fork of [squirrel](http://github.com/lann/squirrel). The same handy fluffy helper, but with extra letters removed :)
 
 ```go
-import "github.com/elgris/sqrl"
+import "github.com/Nais777/builder"
 ```
 
-[![GoDoc](https://godoc.org/github.com/elgris/sqrl?status.png)](https://godoc.org/github.com/elgris/sqrl)
-[![Build Status](https://travis-ci.org/elgris/sqrl.png?branch=master)](https://travis-ci.org/elgris/sqrl)
+[![GoDoc](https://godoc.org/github.com/Nais777/builder?status.png)](https://godoc.org/github.com/Nais777/builder)
 
 **Requires Go 1.8 and higher**
 

@@ -38,7 +38,10 @@ func (e expr) toSQL(b *bytes.Buffer) ([]interface{}, error) {
 			if err != nil {
 				return err
 			}
-			args = append(args, vs...)
+
+			if len(vs) != 0 {
+				args = append(args, vs...)
+			}
 		default:
 			args = append(args, arg)
 			buf.WriteRune('?')
@@ -225,10 +228,7 @@ func equalityToSQL(m map[string]interface{}, b *bytes.Buffer, useNotOpr bool) (a
 		}
 
 		if val == nil {
-			b.WriteString(key)
-			b.WriteByte(' ')
-			b.WriteString(nullOpr)
-			b.WriteString(" NULL")
+			b.WriteString(key + " " + nullOpr + " NULL")
 		} else {
 			valVal := reflect.ValueOf(val)
 			if valVal.Kind() == reflect.Array || valVal.Kind() == reflect.Slice {
@@ -241,17 +241,9 @@ func equalityToSQL(m map[string]interface{}, b *bytes.Buffer, useNotOpr bool) (a
 					args = append(args, valVal.Index(i).Interface())
 				}
 
-				b.WriteString(key)
-				b.WriteByte(' ')
-				b.WriteString(inOpr)
-				b.WriteString(" (")
-				b.WriteString(Placeholders(valVal.Len()))
-				b.WriteString(")")
+				b.WriteString(key + " " + inOpr + " (" + Placeholders(valVal.Len()) + ")")
 			} else {
-				b.WriteString(key)
-				b.WriteByte(' ')
-				b.WriteString(equalOpr)
-				b.WriteString(" ?")
+				b.WriteString(key + " " + equalOpr + " ?")
 
 				args = append(args, val)
 			}
@@ -300,10 +292,7 @@ func comparisonToSQL(m map[string]interface{}, b *bytes.Buffer, opposite, orEq b
 			return
 		}
 
-		b.WriteString(key)
-		b.WriteByte(' ')
-		b.WriteString(opr)
-		b.WriteString(" ?")
+		b.WriteString(key + " " + opr + " ?")
 
 		args = append(args, val)
 

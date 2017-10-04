@@ -20,15 +20,17 @@ func (b *sqlizerBuffer) WriteSQL(item sqlWriter) {
 	}
 
 	var args []interface{}
-	args, err := item.toSQL(b.b)
+	args, b.err = item.toSQL(b.b)
 
-	if err != nil {
-		b.err = err
+	if b.err != nil {
 		return
 	}
 
 	b.b.WriteByte(' ')
-	b.args = append(b.args, args...)
+
+	if len(args) != 0 {
+		b.args = append(b.args, args...)
+	}
 }
 
 // whenPart is a helper structure to describe SQLs "WHEN ... THEN ..." expression
